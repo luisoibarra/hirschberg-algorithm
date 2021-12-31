@@ -1,5 +1,7 @@
 import numpy as np
 from typing import Callable, List, Tuple
+from needleman_wunsch import needleman_wunsch
+from utils import load_data, time_it
 
 def needleman_wunsch_space_efficient(str1: str, str2: str, fun_cost: Callable[[str,str],float], gap_cost: float)-> List[float]:
     """
@@ -23,42 +25,6 @@ def needleman_wunsch_space_efficient(str1: str, str2: str, fun_cost: Callable[[s
             score[1,j] = max(sub_score, del_score, ins_score)
         score[0,:] = score[1,:] # Copia la fila de abajo para la primera posición para ahorar espacio
     return score[1]
-
-def needleman_wunsch(str1: str, str2: str, cost_fun: Callable[[str,str],float], gap_cost:float) -> Tuple[float,str,str]:
-    """
-    # Algoritmo de Needleman-Wunsch.  
-    
-    Devuelve el costo y la alineación global de `str1` y `str2` que maximiza 
-    la función de costo `cost_fun` con un coste de hueco de `gap_cost`. 
-    """
-    nw = np.zeros((len(str1)+1,len(str2)+1))
-    subs_dict = {}
-    # Casos bases
-    for i in range(1, len(str1)+1):
-        nw[i,0] = nw[i-1,0] + gap_cost
-        subs_dict[i,0] = (i-1,0,str1[i-1],'-')
-    # Casos bases
-    for j in range(1, len(str2)+1):
-        nw[0,j] = nw[0,j-1] + gap_cost
-        subs_dict[0,j] = (0,j-1,'-',str2[j-1])
-    for i in range(1, len(str1) + 1):
-        for j in range(1, len(str2) + 1):
-            nw[i,j],subst_str1,subst_str2,from_i, from_j = max(
-                (nw[i-1,j-1] + cost_fun(str1[i-1], str2[j-1]), str1[i-1],str2[j-1],i-1,j-1),
-                (nw[i-1,j] + gap_cost, str1[i-1],'-',i-1,j),
-                (nw[i,j-1] + gap_cost, '-',str2[j-1],i,j-1),
-                key=lambda x: x[0]
-            )
-            subs_dict[i,j] = (from_i, from_j, subst_str1, subst_str2)
-    
-    i,j = len(str1), len(str2)
-    subs1 = ""
-    subs2 = ""
-    while i != 0 or j != 0:
-        i, j, sub1, sub2 = subs_dict[i,j]
-        subs1 = sub1 + subs1    
-        subs2 = sub2 + subs2
-    return nw[len(str1), len(str2)], subs1, subs2
 
 def hirschberg(str1: str, str2: str, cost_fun: Callable[[str,str],float], gap_cost:float) -> Tuple[float,str,str]:
     """
@@ -99,41 +65,6 @@ def hirschberg(str1: str, str2: str, cost_fun: Callable[[str,str],float], gap_co
         upper_transcription = upper_transcription_l + upper_transcription_r
         lower_transcription = lower_transcription_l + lower_transcription_r
     return cost, upper_transcription, lower_transcription
-
-def longest_common_subsequence(str1: str, str2: str) -> str:
-    """
-    # Subsecuencia común más larga (LCS)
-    
-    Devuelve una LCS partiendo del algoritmo de Hirschberg.
-    """
-    x = hirschberg(str1, str2, lambda x,y: 1 if x==y else 0, 0)
-    cost, trans1, trans2 = x
-    lcs = ""
-    for i,j in zip(trans1, trans2):
-        lcs += i if i == j else ""
-    return lcs
-    
-def levenshtein(str1: str, str2: str) -> Tuple[float,str]:
-    """
-    # Distancia de Levenshtein
-    
-    Devualve la distancia de Levenshtein y la transcripción de la 
-    cadena partiendo del algoritmo de Hirschberg.  
-    """
-    
-    x = hirschberg(str1, str2, lambda x,y: 0 if x==y else -1, -1)
-    cost, trans1, trans2 = x
-    transc = ""
-    for i,j in zip(trans1, trans2):
-        if i == '-':
-            transc += 'd'
-        elif j=='-':
-            transc += 'i'
-        elif i == j:
-            transc += 'c'
-        else:
-            transc += 's'
-    return -cost, transc
 
 cost_matrix = {
     ("A","A"): 10,
@@ -192,6 +123,38 @@ def main():
         print("Hirschberg")
         print_results(hirschberg(*x))
 
+def test_hirschberg():
+    data = load_data()
+    hirschberg_time = time_it(hirschberg)
+    needleman_wunsch_time = time_it(needleman_wunsch)
+    tests_results = []
+    cost_fun, gap_cost = lambda x,y: 2 if x==y else -1, -2
+    for n in data:
+        str1,str2 = data[n]
+        (hirschberg_val, _, _), hirschberg_actual_time = hirschberg_time(str1, str2, cost_fun, gap_cost)
+        (needleman_wunsch_val, _, _), needleman_wunsch_actual_time = needleman_wunsch_time(str1, str2, cost_fun, gap_cost)
+        # Parrafos, Longitud Str1, Lngitud Str2, Resultado Heirschberg, Tiempo Heirschberg, Resultado No Heirschberg, Tiempo No Heirschberg
+        tests_results.append((n, len(str1), len(str2), hirschberg_val, hirschberg_actual_time, needleman_wunsch_val, needleman_wunsch_actual_time))
+    
+    return tests_results
 
-levenshtein("sitting","kitten") # 3
-levenshtein("asfsdfasdsdvdsavadvvfevaevavfassaf","hmssbavdvADfabadvsdvzvdDsaagf") # 23
+def user_interaction_hirschberg():
+    print("Comparando algoritmo Hirschberg y Needleman-Wunsch")
+    print()
+    str1 = input("Escriba la primera cadena: ")
+    str2 = input("Escriba la segunda cadena: ")
+    cost_fun, gap_cost = lambda x,y: 2 if x==y else -1, -2
+    hirschberg_time = time_it(hirschberg)
+    needleman_wunsch_time = time_it(needleman_wunsch)
+    h, hirschberg_actual_time = hirschberg_time(str1, str2, cost_fun, gap_cost)
+    n, needleman_wunsch_actual_time = needleman_wunsch_time(str1, str2, cost_fun, gap_cost)
+    print("Resultados de Hirscherg")
+    print_results(h)
+    print("Resultados de Needleman-Wunsch")
+    print_results(n)
+    print("Los tiempos de los algoritmos fueron:")
+    print("Hirscherg:", hirschberg_actual_time)
+    print("Needleman-Wunsch:", needleman_wunsch_actual_time)
+
+if __name__ == '__main__':
+    test_hirschberg()
