@@ -3,6 +3,19 @@ from typing import Dict, Tuple
 import time
 
 def load_data(directory:str=None) -> Dict[int,Tuple[str,str]]:
+    """
+    Devuelve el conjunto de datos guardado en `directory`
+
+    El formato de los datos es el siguiente:
+
+    Numero1
+    String11  
+    String12
+    Numero2
+    String21  
+    String22
+    ...
+    """
     if directory is None:
         directory = os.path.join(os.path.dirname(__file__) ,"data", "strings.txt")
     
@@ -24,7 +37,7 @@ def load_data(directory:str=None) -> Dict[int,Tuple[str,str]]:
 
 def time_it(fun):
     """
-    Returns the value of the decorated function and the time of execution
+    Devuelve el resultado de la función y el tiempo que se demoró la ejecución de esta
     """
     def f(*args, **kwargs):
         init = time.time()

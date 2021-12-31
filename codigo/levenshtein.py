@@ -36,13 +36,11 @@ def levenshtein(str1: str, str2: str) -> int:
     cols = len(str2)+1
     dist = [[0 for x in range(cols)] for x in range(rows)]
 
-    # source prefixes can be transformed into empty strings 
-    # by deletions:
+    # Caso base
     for i in range(1, rows):
         dist[i][0] = i
 
-    # target prefixes can be created from an empty source string
-    # by inserting the characters
+    # Caso base
     for i in range(1, cols):
         dist[0][i] = i
         
@@ -52,9 +50,9 @@ def levenshtein(str1: str, str2: str) -> int:
                 cost = 0
             else:
                 cost = 1
-            dist[row][col] = min(dist[row-1][col] + 1,      # deletion
-                                 dist[row][col-1] + 1,      # insertion
-                                 dist[row-1][col-1] + cost) # substitution
+            dist[row][col] = min(dist[row-1][col] + 1,      # Borrar
+                                 dist[row][col-1] + 1,      # Insertar
+                                 dist[row-1][col-1] + cost) # Substituir
 
     return dist[row][col]
 
